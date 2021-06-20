@@ -1,0 +1,21 @@
+[package]
+name = "kctf-pow"
+version = "0.1.0"
+edition = "2018"
+
+[dependencies]
+rug = "1.12.0"
+rand = "0.8.4"
+base64 = "0.13.0"
+
+[lib]
+name = "kctf_pow"
+path = "src/lib.rs"
+
+[[bin]]
+name = "kctf-pow-cli"
+path = "src/main.rs"
+
+[profile.release]
+opt-level = 3
+lto = "fat"
