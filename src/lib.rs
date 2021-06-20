@@ -1,7 +1,7 @@
 //! A library to solve, check, and generate proof-of-work challenges using [kCTF](https://google.github.io/kctf/)'s scheme.
 //! ```rust
 //! use kctf_pow::KctfPow;
-//! 
+//!
 //! fn main() {
 //!     let pow = KctfPow::new();
 //!     // decoding then solving a challenge
@@ -38,32 +38,35 @@ pub struct KctfPow {
     pub exponent: Integer,
 }
 
+/// The parameters for a proof-of-work challenge.
+///
+/// This contains most of the logic, however [`KctfPow`] and [`Challenge`] should be used instead as they provide a nicer API.
+/// If you want to serialize it to a string, use the [`Display`](std::fmt::Display) implementation.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct ChallengeParams {
+    /// The difficulty of the challenge.
+    pub difficulty: u32,
+    /// The starting value of the challenge.
+    pub val: Integer,
+}
+
 /// A proof-of-work challenge.
 ///
 /// Contains a reference to the [`KctfPow`] that created the challenge. If you want to serialize it to a string, use the [`Display`](std::fmt::Display) implementation.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Challenge<'a> {
-    /// The difficulty of the challenge.
-    pub difficulty: u32,
-    /// The starting value of the challenge.
-    pub val: Integer,
+    /// The parameters of the challenge.
+    pub params: ChallengeParams,
     /// The proof-of-work system with associated constants pre-initialized.
     pub pow: &'a KctfPow,
 }
 
-impl KctfPow {
-    /// Create a new instance and initialize necessary constants.
-    pub fn new() -> Self {
-        let modulus: Integer = Integer::from(2).pow(1279) - 1;
-        let exponent = (modulus.clone() + 1) / 4;
-        Self { modulus, exponent }
-    }
-
+impl ChallengeParams {
     /// Decodes a challenge from a string and returns it.
     ///
     /// For optimization purposes, the difficulty of the challenge must be able to fit in a [`u32`].
     /// This shouldn't be an issue, since difficulties that can't fit into a [`u32`] will probably take too long anyways.
-    pub fn decode_challenge(&self, chall_string: &str) -> Result<Challenge, &'static str> {
+    pub fn decode_challenge(chall_string: &str) -> Result<ChallengeParams, &'static str> {
         let mut parts = chall_string.split('.');
         if parts.next() != Some(VERSION) {
             return Err("Incorrect version");
@@ -90,37 +93,27 @@ impl KctfPow {
             difficulty_array[4 - difficulty_bytes.len()..].copy_from_slice(difficulty_bytes);
             difficulty = u32::from_be_bytes(difficulty_array);
         }
-        Ok(Challenge {
-            pow: self,
+        Ok(Self {
             val: Integer::from_digits(&decoded_data[1], Order::Msf),
             difficulty,
         })
     }
 
     /// Generates a random challenge given a difficulty.
-    pub fn generate_challenge(&self, difficulty: u32) -> Challenge {
+    pub fn generate_challenge(difficulty: u32) -> ChallengeParams {
         let mut bytes: [u8; 16] = [0; 16];
         thread_rng().fill(&mut bytes[..]);
-        Challenge {
-            pow: self,
+        Self {
             val: Integer::from_digits(&bytes, Order::Msf),
             difficulty,
         }
     }
-}
 
-impl Default for KctfPow {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl<'a> Challenge<'a> {
-    /// Solves a challenge and returns the solution.
-    pub fn solve(mut self) -> String {
+    /// Solves a challenge given a proof-of-work system and returns the solution.
+    pub fn solve(mut self, pow: &KctfPow) -> String {
         for _ in 0..self.difficulty {
             // guaranteed to succeed so ignore the result
-            let _ = self.val.pow_mod_mut(&self.pow.exponent, &self.pow.modulus);
+            let _ = self.val.pow_mod_mut(&pow.exponent, &pow.modulus);
             self.val ^= 1;
         }
         format!(
@@ -130,8 +123,8 @@ impl<'a> Challenge<'a> {
         )
     }
 
-    /// Checks a solution to see if it satisfies the challenge.
-    pub fn check(&self, sol: &str) -> Result<bool, &'static str> {
+    /// Checks a solution to see if it satisfies the challenge under a given proof-of-work system.
+    pub fn check(&self, pow: &KctfPow, sol: &str) -> Result<bool, &'static str> {
         let mut parts = sol.split('.');
         if parts.next() != Some(VERSION) {
             return Err("Incorrect version");
@@ -148,13 +141,59 @@ impl<'a> Challenge<'a> {
         for _ in 0..self.difficulty {
             sol_val ^= 1;
             // guaranteed to succeed so ignore the result
-            let _ = sol_val.pow_mod_mut(&2.into(), &self.pow.modulus);
+            let _ = sol_val.pow_mod_mut(&2.into(), &pow.modulus);
         }
-        Ok(self.val == sol_val || Integer::from(&self.pow.modulus - &self.val) == sol_val)
+        Ok(self.val == sol_val || Integer::from(&pow.modulus - &self.val) == sol_val)
     }
 }
 
-impl<'a> fmt::Display for Challenge<'a> {
+impl KctfPow {
+    /// Create a new instance and initialize necessary constants.
+    pub fn new() -> Self {
+        let modulus: Integer = Integer::from(2).pow(1279) - 1;
+        let exponent = (modulus.clone() + 1) / 4;
+        Self { modulus, exponent }
+    }
+
+    /// Decodes a challenge from a string and returns it.
+    ///
+    /// For optimization purposes, the difficulty of the challenge must be able to fit in a [`u32`].
+    /// This shouldn't be an issue, since difficulties that can't fit into a [`u32`] will probably take too long anyways.
+    pub fn decode_challenge(&self, chall_string: &str) -> Result<Challenge, &'static str> {
+        Ok(Challenge {
+            params: ChallengeParams::decode_challenge(chall_string)?,
+            pow: self
+        })
+    }
+
+    /// Generates a random challenge given a difficulty.
+    pub fn generate_challenge(&self, difficulty: u32) -> Challenge {
+        Challenge {
+            params: ChallengeParams::generate_challenge(difficulty),
+            pow: self
+        }
+    }
+}
+
+impl Default for KctfPow {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<'a> Challenge<'a> {
+    /// Solves a challenge and returns the solution.
+    pub fn solve(self) -> String {
+        self.params.solve(self.pow)
+    }
+
+    /// Checks a solution to see if it satisfies the challenge.
+    pub fn check(&self, sol: &str) -> Result<bool, &'static str> {
+        self.params.check(self.pow, sol)
+    }
+}
+
+impl fmt::Display for ChallengeParams {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             fmt,
@@ -163,5 +202,11 @@ impl<'a> fmt::Display for Challenge<'a> {
             base64::encode(&self.difficulty.to_be_bytes()),
             base64::encode(&self.val.to_digits(Order::Msf))
         )
+    }
+}
+
+impl<'a> fmt::Display for Challenge<'a> {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(fmt, "{}", self.params)
     }
 }
