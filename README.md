@@ -54,6 +54,27 @@ kctf-pow ask 50
 # Outputs correct and exits with status code 0
 ```
 
+# Library Usage
+
+```rust
+use kctf_pow::KctfPow;
+
+fn main() {
+    let pow = KctfPow::new();
+    // decoding then solving a challenge
+    let chall = pow.decode_challenge("s.AAAAMg==.H+fPiuL32DPbfN97cpd0nA==").unwrap();
+    println!("{}", chall.solve());
+    // decoding then checking a challenge
+    let chall = pow.decode_challenge("s.AAAAMg==.NDtqORW1uZlIgzszbdMGZA==").unwrap();
+    let sol = "s.NUH3arymnKB+ysUGdv+67ypDamn4wOKCPORB2ivWE1Yhinam2v4S6q4nAoC5LP97LScdVoq+NuFVF++Win5mNRYZS6bJAs8fk0h8XgvfcC/7JfmFISqeCIo/CIUgIucVAM+eGDjqitRULGXqIOyviJoJjW8DMouMRuJM/3eg/z18kutQHkX0N3sqPeF7Nzkk8S3Bs6aiHUORM30syUKYug==";
+    assert_eq!(chall.check(sol), Ok(true));
+    assert_eq!(chall.check("s.asdf"), Ok(false));
+    // generating a random challenge of difficulty 50
+    let chall = pow.generate_challenge(50);
+    println!("{}", chall);
+}
+```
+
 # Library Documentation
 
 The documentation for the library is available on [docs.rs](https://docs.rs/kctf-pow).
