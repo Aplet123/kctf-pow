@@ -32,7 +32,9 @@ const VERSION: &'static str = "s";
 /// All proof-of-work related methods are on instances of [`KctfPow`] in order to initialize and reuse related constants.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct KctfPow {
+    /// The modulus of the proof-of-work. kCTF uses `2**1279 - 1`.
     pub modulus: Integer,
+    /// The exponent of the proof-of-work. kCTF uses `(modulus + 1) / 4`.
     pub exponent: Integer,
 }
 
@@ -41,8 +43,11 @@ pub struct KctfPow {
 /// Contains a reference to the [`KctfPow`] that created the challenge. If you want to serialize it to a string, use the [`Display`](std::fmt::Display) implementation.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Challenge<'a> {
+    /// The difficulty of the challenge.
     pub difficulty: u32,
+    /// The starting value of the challenge.
     pub val: Integer,
+    /// The proof-of-work system with associated constants pre-initialized.
     pub pow: &'a KctfPow,
 }
 
