@@ -32,8 +32,8 @@ const VERSION: &'static str = "s";
 /// All proof-of-work related methods are on instances of [`KctfPow`] in order to initialize and reuse related constants.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct KctfPow {
-    modulus: Integer,
-    exponent: Integer,
+    pub modulus: Integer,
+    pub exponent: Integer,
 }
 
 /// A proof-of-work challenge.
@@ -41,9 +41,9 @@ pub struct KctfPow {
 /// Contains a reference to the [`KctfPow`] that created the challenge. If you want to serialize it to a string, use the [`Display`](std::fmt::Display) implementation.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Challenge<'a> {
-    difficulty: u32,
-    val: Integer,
-    pow: &'a KctfPow,
+    pub difficulty: u32,
+    pub val: Integer,
+    pub pow: &'a KctfPow,
 }
 
 impl KctfPow {
