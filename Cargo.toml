@@ -1,7 +1,10 @@
 [package]
 name = "kctf-pow"
-version = "0.1.0"
+version = "1.0.0"
 edition = "2018"
+description = "A library and CLI to solve, check, and generate proof-of-work challenges using kCTF's scheme."
+license = "BSD-3"
+authors = ["Aplet123 <aplet@aplet.me>"]
 
 [dependencies]
 rug = "1.12.0"
