@@ -132,9 +132,8 @@ impl ChallengeParams {
         if parts.next() != Some(VERSION) {
             return Err("Incorrect version");
         }
-        let data = match parts.next() {
-            Some(x) => x,
-            None => return Err("Incorrect number of parts"),
+        let Some(data) = parts.next() else {
+            return Err("Incorrect number of parts");
         };
         if parts.next().is_some() {
             return Err("Incorrect number of parts");
