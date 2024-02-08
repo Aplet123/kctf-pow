@@ -9,9 +9,9 @@ repository = "https://github.com/Aplet123/kctf-pow"
 documentation = "https://docs.rs/kctf-pow"
 
 [dependencies]
-rug = "1.12.0"
-rand = "0.8.4"
-base64 = "0.13.0"
+rug = { version = "1.24.0", features = ["integer", "std"], default-features = false }
+rand = "0.8.5"
+base64 = "0.21.7"
 
 [lib]
 name = "kctf_pow"

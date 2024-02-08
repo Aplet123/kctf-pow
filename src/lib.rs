@@ -18,6 +18,7 @@
 //! }
 //! ```
 
+use base64::prelude::*;
 use rand::prelude::*;
 use rug::integer::Order;
 use rug::ops::Pow;
@@ -77,7 +78,11 @@ impl ChallengeParams {
         }
         let decoded_data: Vec<_> = data
             .into_iter()
-            .map(|x| base64::decode(x).map_err(|_| "Parts aren't valid base64"))
+            .map(|x| {
+                BASE64_STANDARD
+                    .decode(x)
+                    .map_err(|_| "Parts aren't valid base64")
+            })
             .collect::<Result<_, _>>()?;
         let difficulty_bytes = &decoded_data[0];
         let difficulty: u32;
@@ -119,7 +124,7 @@ impl ChallengeParams {
         format!(
             "{}.{}",
             VERSION,
-            base64::encode(self.val.to_digits(Order::Msf))
+            BASE64_STANDARD.encode(self.val.to_digits(Order::Msf))
         )
     }
 
@@ -136,7 +141,9 @@ impl ChallengeParams {
         if let Some(_) = parts.next() {
             return Err("Incorrect number of parts");
         }
-        let decoded_data = base64::decode(data).map_err(|_| "Parts aren't valid base64")?;
+        let decoded_data = BASE64_STANDARD
+            .decode(data)
+            .map_err(|_| "Parts aren't valid base64")?;
         let mut sol_val = Integer::from_digits(&decoded_data, Order::Msf);
         for _ in 0..self.difficulty {
             sol_val ^= 1;
@@ -162,7 +169,7 @@ impl KctfPow {
     pub fn decode_challenge(&self, chall_string: &str) -> Result<Challenge, &'static str> {
         Ok(Challenge {
             params: ChallengeParams::decode_challenge(chall_string)?,
-            pow: self
+            pow: self,
         })
     }
 
@@ -170,7 +177,7 @@ impl KctfPow {
     pub fn generate_challenge(&self, difficulty: u32) -> Challenge {
         Challenge {
             params: ChallengeParams::generate_challenge(difficulty),
-            pow: self
+            pow: self,
         }
     }
 }
@@ -199,8 +206,8 @@ impl fmt::Display for ChallengeParams {
             fmt,
             "{}.{}.{}",
             VERSION,
-            base64::encode(&self.difficulty.to_be_bytes()),
-            base64::encode(&self.val.to_digits(Order::Msf))
+            BASE64_STANDARD.encode(&self.difficulty.to_be_bytes()),
+            BASE64_STANDARD.encode(&self.val.to_digits(Order::Msf))
         )
     }
 }
