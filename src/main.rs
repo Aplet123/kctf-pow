@@ -15,7 +15,7 @@ Usage:
 
 fn actual_main() -> Result<(), String> {
     let args: Vec<_> = std::env::args().collect();
-    let name = args.get(0).map(|x| x as _).unwrap_or("kctf-pow");
+    let name = args.first().map(|x| x as _).unwrap_or("kctf-pow");
     if args.len() < 3 {
         return Err(gen_usage(name));
     }

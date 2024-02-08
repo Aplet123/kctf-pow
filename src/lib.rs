@@ -1,21 +1,20 @@
 //! A library to solve, check, and generate proof-of-work challenges using [kCTF](https://google.github.io/kctf/)'s scheme.
+//!
 //! ```rust
 //! use kctf_pow::KctfPow;
 //!
-//! fn main() {
-//!     let pow = KctfPow::new();
-//!     // decoding then solving a challenge
-//!     let chall = pow.decode_challenge("s.AAAAMg==.H+fPiuL32DPbfN97cpd0nA==").unwrap();
-//!     println!("{}", chall.solve());
-//!     // decoding then checking a challenge
-//!     let chall = pow.decode_challenge("s.AAAAMg==.NDtqORW1uZlIgzszbdMGZA==").unwrap();
-//!     let sol = "s.NUH3arymnKB+ysUGdv+67ypDamn4wOKCPORB2ivWE1Yhinam2v4S6q4nAoC5LP97LScdVoq+NuFVF++Win5mNRYZS6bJAs8fk0h8XgvfcC/7JfmFISqeCIo/CIUgIucVAM+eGDjqitRULGXqIOyviJoJjW8DMouMRuJM/3eg/z18kutQHkX0N3sqPeF7Nzkk8S3Bs6aiHUORM30syUKYug==";
-//!     assert_eq!(chall.check(sol), Ok(true));
-//!     assert_eq!(chall.check("s.asdf"), Ok(false));
-//!     // generating a random challenge of difficulty 50
-//!     let chall = pow.generate_challenge(50);
-//!     println!("{}", chall);
-//! }
+//! let pow = KctfPow::new();
+//! // decoding then solving a challenge
+//! let chall = pow.decode_challenge("s.AAAAMg==.H+fPiuL32DPbfN97cpd0nA==").unwrap();
+//! println!("{}", chall.solve());
+//! // decoding then checking a challenge
+//! let chall = pow.decode_challenge("s.AAAAMg==.NDtqORW1uZlIgzszbdMGZA==").unwrap();
+//! let sol = "s.NUH3arymnKB+ysUGdv+67ypDamn4wOKCPORB2ivWE1Yhinam2v4S6q4nAoC5LP97LScdVoq+NuFVF++Win5mNRYZS6bJAs8fk0h8XgvfcC/7JfmFISqeCIo/CIUgIucVAM+eGDjqitRULGXqIOyviJoJjW8DMouMRuJM/3eg/z18kutQHkX0N3sqPeF7Nzkk8S3Bs6aiHUORM30syUKYug==";
+//! assert_eq!(chall.check(sol), Ok(true));
+//! assert_eq!(chall.check("s.asdf"), Ok(false));
+//! // generating a random challenge of difficulty 50
+//! let chall = pow.generate_challenge(50);
+//! println!("{}", chall);
 //! ```
 
 use base64::prelude::*;
@@ -26,7 +25,7 @@ use rug::Integer;
 use std::convert::TryInto;
 use std::fmt;
 
-const VERSION: &'static str = "s";
+const VERSION: &str = "s";
 
 /// A proof-of-work system for kCTF.
 ///
@@ -85,19 +84,18 @@ impl ChallengeParams {
             })
             .collect::<Result<_, _>>()?;
         let difficulty_bytes = &decoded_data[0];
-        let difficulty: u32;
-        if difficulty_bytes.len() > 4 {
+        let difficulty: u32 = if difficulty_bytes.len() > 4 {
             let (first, last) = difficulty_bytes.split_at(difficulty_bytes.len() - 4);
             // if difficulty is 0-padded to longer than 4 bytes it should still work
             if first.iter().any(|&x| x != 0) {
                 return Err("Difficulty is too large");
             }
-            difficulty = u32::from_be_bytes(last.try_into().unwrap())
+            u32::from_be_bytes(last.try_into().unwrap())
         } else {
             let mut difficulty_array = [0; 4];
             difficulty_array[4 - difficulty_bytes.len()..].copy_from_slice(difficulty_bytes);
-            difficulty = u32::from_be_bytes(difficulty_array);
-        }
+            u32::from_be_bytes(difficulty_array)
+        };
         Ok(Self {
             val: Integer::from_digits(&decoded_data[1], Order::Msf),
             difficulty,
@@ -138,7 +136,7 @@ impl ChallengeParams {
             Some(x) => x,
             None => return Err("Incorrect number of parts"),
         };
-        if let Some(_) = parts.next() {
+        if parts.next().is_some() {
             return Err("Incorrect number of parts");
         }
         let decoded_data = BASE64_STANDARD
@@ -206,8 +204,8 @@ impl fmt::Display for ChallengeParams {
             fmt,
             "{}.{}.{}",
             VERSION,
-            BASE64_STANDARD.encode(&self.difficulty.to_be_bytes()),
-            BASE64_STANDARD.encode(&self.val.to_digits(Order::Msf))
+            BASE64_STANDARD.encode(self.difficulty.to_be_bytes()),
+            BASE64_STANDARD.encode(self.val.to_digits(Order::Msf))
         )
     }
 }
