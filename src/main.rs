@@ -32,7 +32,8 @@ fn actual_main() -> Result<(), String> {
             if res {
                 println!("correct");
             } else {
-                return Err("incorrect".into());
+                println!("incorrect");
+                return Err("Challenge verification failed".into());
             }
         }
         "gen" => {
@@ -55,7 +56,8 @@ fn actual_main() -> Result<(), String> {
             if res {
                 println!("correct");
             } else {
-                return Err("incorrect".into());
+                println!("incorrect");
+                return Err("Challenge verification failed".into());
             }
         }
         _ => {
