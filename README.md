@@ -60,7 +60,6 @@ kctf-pow ask 50
 use kctf_pow::ChallengeParams;
 
 fn main() {
-    let pow = KctfPow::new();
     // decoding then solving a challenge
     let chall = ChallengeParams::decode_challenge("s.AAAAMg==.H+fPiuL32DPbfN97cpd0nA==").unwrap();
     println!("{}", chall.solve());
