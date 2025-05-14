@@ -18,9 +18,9 @@
 
 use base64::prelude::*;
 use rand::prelude::*;
+use rug::Integer;
 use rug::integer::Order;
 use rug::ops::Pow;
-use rug::Integer;
 use std::convert::TryInto;
 use std::fmt;
 

@@ -1,7 +1,7 @@
 [package]
 name = "kctf-pow"
 version = "2.1.0"
-edition = "2018"
+edition = "2024"
 description = "A library and CLI to solve, check, and generate proof-of-work challenges using kCTF's scheme."
 license = "BSD-3-Clause"
 authors = ["Aplet123 <aplet@aplet.me>"]
