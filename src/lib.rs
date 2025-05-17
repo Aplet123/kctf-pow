@@ -18,11 +18,11 @@
 
 use base64::prelude::*;
 use rand::prelude::*;
-use rug::Integer;
-use rug::integer::Order;
-use rug::ops::Pow;
 use std::convert::TryInto;
 use std::fmt;
+
+mod bigint;
+use bigint::BigInt;
 
 const VERSION: &str = "s";
 
@@ -35,19 +35,7 @@ pub struct ChallengeParams {
     /// The difficulty of the challenge.
     pub difficulty: u32,
     /// The starting value of the challenge.
-    pub val: Integer,
-}
-
-/// Squares an integer in-place modulo 2^1279-1
-fn square_mod(n: &mut Integer) {
-    n.square_mut();
-    let high = Integer::from(&*n >> 1279);
-    n.keep_bits_mut(1279);
-    *n += high;
-    if n.get_bit(1279) {
-        n.set_bit(1279, false);
-        *n += 1;
-    }
+    pub val: BigInt,
 }
 
 impl ChallengeParams {
@@ -86,17 +74,17 @@ impl ChallengeParams {
             u32::from_be_bytes(difficulty_array)
         };
         Ok(Self {
-            val: Integer::from_digits(&decoded_data[1], Order::Msf),
+            val: BigInt::from_be_bytes(&decoded_data[1]),
             difficulty,
         })
     }
 
     /// Generates a random challenge given a difficulty.
     pub fn generate_challenge(difficulty: u32) -> ChallengeParams {
-        let mut bytes: [u8; 16] = [0; 16];
+        let mut bytes = [0; 16];
         rand::rng().fill(&mut bytes[..]);
         Self {
-            val: Integer::from_digits(&bytes, Order::Msf),
+            val: BigInt::from_be_bytes(&bytes),
             difficulty,
         }
     }
@@ -106,14 +94,14 @@ impl ChallengeParams {
         for _ in 0..self.difficulty {
             // guaranteed to succeed so ignore the result
             for _ in 0..1277 {
-                square_mod(&mut self.val);
+                self.val.square_mod();
             }
-            self.val ^= 1;
+            self.val.xor_one();
         }
         format!(
             "{}.{}",
             VERSION,
-            BASE64_STANDARD.encode(self.val.to_digits(Order::Msf))
+            BASE64_STANDARD.encode(self.val.to_be_bytes())
         )
     }
 
@@ -132,12 +120,13 @@ impl ChallengeParams {
         let decoded_data = BASE64_STANDARD
             .decode(data)
             .map_err(|_| "Parts aren't valid base64")?;
-        let mut sol_val = Integer::from_digits(&decoded_data, Order::Msf);
+        let mut sol_val = BigInt::from_be_bytes(&decoded_data);
         for _ in 0..self.difficulty {
-            sol_val ^= 1;
-            square_mod(&mut sol_val);
+            sol_val.xor_one();
+            sol_val.square_mod();
         }
-        Ok(self.val == sol_val || Integer::from(2).pow(1279) - 1 - &self.val == sol_val)
+
+        Ok(self.val == sol_val || self.val.negate_mod() == sol_val)
     }
 }
 
@@ -148,7 +137,38 @@ impl fmt::Display for ChallengeParams {
             "{}.{}.{}",
             VERSION,
             BASE64_STANDARD.encode(self.difficulty.to_be_bytes()),
-            BASE64_STANDARD.encode(self.val.to_digits(Order::Msf))
+            BASE64_STANDARD.encode(self.val.to_be_bytes())
         )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const CHALLENGE: &str = "s.AAAAZA==.KskOPzEduBg+z0cbeBsA1A==";
+    const VALID_SOL: &str = "s.aNL1WVbhmQGstx2jyfYcYTmguYKzEugAMwYL9LP4Z36Q5CVgAbvbCpZNSfHWclBqUWSBFswrQcHoEGmhFK+QCIFNEdDY5diLBXNQ3CWO8DGceDmMqyVmEU0r7bBUtuXAFfP7c2CPUYHm7FviyUW3PTprzJMk3hjBINvW76j2Vu5pM931Ex0RTTBMYge8/Zjnlz/KuSiqptUDiaRHtbxkqQ==";
+    const INVALID_SOL: &str = "s.FR4SdG/xcaMJ+AtZyq7uSbc21c2V8oENE1J926og8tBrFmIwWqsOtKUIPbnLffcdYk8n9p2FYX62jjjKVAvIRnrhThjbA0gi5XznkuupMzIoX9BbD/2y5qL0D9L9ZYSMGeYIxvyoZ/9YKnDVnGRdU+PapGA3oo/IDaK1Ev74w+uknalVqj4rnd9PFmlDmOU614H7mfC1gxGBMmlzurhEEQ==";
+
+    #[test]
+    fn test_solve() {
+        let chall = ChallengeParams::decode_challenge(CHALLENGE).unwrap();
+        let solve = chall.solve();
+        assert_eq!(&solve, VALID_SOL);
+    }
+
+    #[test]
+    fn test_check() {
+        let chall = ChallengeParams::decode_challenge(CHALLENGE).unwrap();
+        assert!(chall.clone().check(VALID_SOL).unwrap());
+        assert!(!chall.check(INVALID_SOL).unwrap());
+    }
+
+    #[test]
+    fn test_gen() {
+        let chall = ChallengeParams::generate_challenge(100);
+        assert!(chall.to_string().len() <= 35);
+        assert!(chall.difficulty == 100);
+        assert!(chall.check(&chall.clone().solve()).unwrap());
     }
 }

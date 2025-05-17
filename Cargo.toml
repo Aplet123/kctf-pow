@@ -13,6 +13,9 @@ rug = { version = "1.27.0", features = ["integer", "std"], default-features = fa
 rand = { version = "0.9.1", features = ["thread_rng"], default-features = false}
 base64 = "0.22.1"
 
+[dev-dependencies]
+criterion = "0.6.0"
+
 [lib]
 name = "kctf_pow"
 path = "src/lib.rs"
@@ -22,6 +25,11 @@ name = "kctf-pow"
 path = "src/main.rs"
 doc = false
 
+[[bench]]
+name = "bigint_bench"
+harness = false
+
 [profile.release]
 opt-level = 3
 lto = "fat"
+
