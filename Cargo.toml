@@ -1,6 +1,6 @@
 [package]
 name = "kctf-pow"
-version = "2.1.0"
+version = "2.1.1"
 edition = "2024"
 description = "A library and CLI to solve, check, and generate proof-of-work challenges using kCTF's scheme."
 license = "BSD-3-Clause"
@@ -9,8 +9,8 @@ repository = "https://github.com/Aplet123/kctf-pow"
 documentation = "https://docs.rs/kctf-pow"
 
 [dependencies]
-rug = { version = "1.27.0", features = ["integer", "std"], default-features = false }
-rand = { version = "0.9.1", features = ["thread_rng"], default-features = false}
+rug = { version = "1.28.1", features = ["integer", "std"], default-features = false }
+rand = { version = "0.10.0", features = ["thread_rng"], default-features = false}
 base64 = "0.22.1"
 
 [lib]
